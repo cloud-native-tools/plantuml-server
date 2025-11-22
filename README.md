@@ -141,6 +141,18 @@ You can set all  the following variables:
 * `HTTP_PROXY_READ_TIMEOUT`
   * when calling the `proxy` endpoint, the value of `HTTP_PROXY_READ_TIMEOUT` will be the connection read timeout in milliseconds
   * Default value: `10000` (10 seconds)
+* `PLANTUML_MCP_ENABLED`
+  * Enable the Model Context Protocol (MCP) API for AI agents. See [MCP API documentation](docs/mcp-api.md).
+  * Default value: `false`
+* `PLANTUML_MCP_API_KEY`
+  * Optional API key for MCP endpoint authentication. If set, all MCP requests must include `Authorization: Bearer <key>` header.
+  * Default value: `null` (no authentication required)
+* `PLANTUML_MCP_WORKSPACE_LIMIT`
+  * Maximum number of diagrams per workspace session in the MCP API.
+  * Default value: `20`
+* `PLANTUML_MCP_MAX_REQUESTS_PER_MINUTE`
+  * Rate limit for MCP API requests (not yet implemented).
+  * Default value: `0` (no limit)
 
 
 ## Alternate: How to build your docker image
