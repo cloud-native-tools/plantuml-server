@@ -229,6 +229,15 @@
     <url-pattern>/metadata/*</url-pattern>
   </servlet-mapping>
 
+  <servlet>
+    <servlet-name>mcpservlet</servlet-name>
+    <servlet-class>net.sourceforge.plantuml.servlet.mcp.McpServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>mcpservlet</servlet-name>
+    <url-pattern>/mcp/*</url-pattern>
+  </servlet-mapping>
+
   <!-- ========================================================== -->
   <!-- Error Handler -->
   <!-- ========================================================== -->
