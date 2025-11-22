@@ -139,7 +139,7 @@ public class McpServlet extends HttpServlet {
                 sendError(response, HttpServletResponse.SC_NOT_FOUND, "Endpoint not found");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            // Log error (servlet container will handle logging)
             sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                 "Internal server error: " + e.getMessage());
         }
@@ -189,11 +189,12 @@ public class McpServlet extends HttpServlet {
         info.put("plantumlCoreVersion", Version.versionString());
         info.put("securityProfile", SecurityUtils.getSecurityProfile().toString());
 
-        String limitSize = System.getenv("PLANTUML_LIMIT_SIZE");
-        info.put("limitSize", limitSize != null ? Integer.parseInt(limitSize) : 4096);
+        info.put("limitSize", Configuration.getInt("PLANTUML_LIMIT_SIZE", 4096));
 
-        String statsEnabled = System.getenv("PLANTUML_STATS");
-        info.put("statsEnabled", "on".equalsIgnoreCase(statsEnabled));
+        boolean statsEnabled = "on".equalsIgnoreCase(
+            Configuration.getString("PLANTUML_STATS", "off")
+        );
+        info.put("statsEnabled", statsEnabled);
 
         Map<String, Object> environment = new HashMap<>();
         environment.put("backend", "jetty");
@@ -204,8 +205,10 @@ public class McpServlet extends HttpServlet {
     }
 
     private void handleStats(HttpServletResponse response) throws IOException {
-        String statsEnabled = System.getenv("PLANTUML_STATS");
-        if (!"on".equalsIgnoreCase(statsEnabled)) {
+        boolean statsEnabled = "on".equalsIgnoreCase(
+            Configuration.getString("PLANTUML_STATS", "off")
+        );
+        if (!statsEnabled) {
             sendError(response, HttpServletResponse.SC_NOT_FOUND, "Stats not enabled");
             return;
         }

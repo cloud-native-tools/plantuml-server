@@ -52,6 +52,10 @@ public final class Configuration {
         config.setProperty("SHOW_SOCIAL_BUTTONS", "off");
         config.setProperty("SHOW_GITHUB_RIBBON", "off");
 
+        // Common PlantUML settings from environment
+        config.setProperty("PLANTUML_LIMIT_SIZE", getEnv("PLANTUML_LIMIT_SIZE", "4096"));
+        config.setProperty("PLANTUML_STATS", getEnv("PLANTUML_STATS", "off"));
+
         // MCP defaults
         config.setProperty("PLANTUML_MCP_ENABLED", getEnv("PLANTUML_MCP_ENABLED", "false"));
         config.setProperty("PLANTUML_MCP_API_KEY", getEnv("PLANTUML_MCP_API_KEY", ""));
