@@ -51,6 +51,16 @@ public final class Configuration {
         // Default values
         config.setProperty("SHOW_SOCIAL_BUTTONS", "off");
         config.setProperty("SHOW_GITHUB_RIBBON", "off");
+
+        // Common PlantUML settings from environment
+        config.setProperty("PLANTUML_LIMIT_SIZE", getEnv("PLANTUML_LIMIT_SIZE", "4096"));
+        config.setProperty("PLANTUML_STATS", getEnv("PLANTUML_STATS", "off"));
+
+        // MCP defaults
+        config.setProperty("PLANTUML_MCP_ENABLED", getEnv("PLANTUML_MCP_ENABLED", "false"));
+        config.setProperty("PLANTUML_MCP_API_KEY", getEnv("PLANTUML_MCP_API_KEY", ""));
+        config.setProperty("PLANTUML_MCP_WORKSPACE_LIMIT", getEnv("PLANTUML_MCP_WORKSPACE_LIMIT", "20"));
+        config.setProperty("PLANTUML_MCP_MAX_REQUESTS_PER_MINUTE", getEnv("PLANTUML_MCP_MAX_REQUESTS_PER_MINUTE", "0"));
         // End of default values
 
         try {
@@ -89,6 +99,52 @@ public final class Configuration {
             return false;
         }
         return get().getProperty(key).startsWith("on");
+    }
+
+    /**
+     * Get a configuration value as string.
+     *
+     * @param key config property key
+     * @param defaultValue default value if key not found
+     *
+     * @return configuration value or default
+     */
+    public static String getString(final String key, final String defaultValue) {
+        String value = get().getProperty(key);
+        return (value != null) ? value : defaultValue;
+    }
+
+    /**
+     * Get a configuration value as integer.
+     *
+     * @param key config property key
+     * @param defaultValue default value if key not found
+     *
+     * @return configuration value or default
+     */
+    public static int getInt(final String key, final int defaultValue) {
+        String value = get().getProperty(key);
+        if (value != null) {
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    /**
+     * Get environment variable helper.
+     *
+     * @param key environment variable name
+     * @param defaultValue default value if not found
+     *
+     * @return environment variable value or default
+     */
+    private static String getEnv(final String key, final String defaultValue) {
+        String value = System.getenv(key);
+        return (value != null) ? value : defaultValue;
     }
 
 }
