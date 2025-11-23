@@ -261,8 +261,9 @@ public class McpServlet extends HttpServlet {
         try {
             // Try to parse the diagram to check for syntax errors
             SourceStringReader reader = new SourceStringReader(source);
-            // Use a null output stream to just validate
-            reader.outputImage(new ByteArrayOutputStream(), 0, new FileFormatOption(FileFormat.PNG));
+            // Use NullOutputStream to avoid generating actual image data
+            reader.outputImage(new net.sourceforge.plantuml.servlet.utility.NullOutputStream(),
+                0, new FileFormatOption(FileFormat.PNG));
 
             Map<String, Object> result = new HashMap<>();
             result.put("ok", true);
@@ -301,16 +302,22 @@ public class McpServlet extends HttpServlet {
                     // Extract participant names from arrow notations
                     String[] parts = line.split("->");
                     for (String part : parts) {
-                        String name = part.trim().split("\\s")[0].replaceAll("[^a-zA-Z0-9_]", "");
-                        if (!name.isEmpty() && !participants.contains(name)) {
-                            participants.add(name);
+                        String trimmed = part.trim();
+                        if (!trimmed.isEmpty()) {
+                            String[] tokens = trimmed.split("\\s+");
+                            if (tokens.length > 0) {
+                                String name = tokens[0].replaceAll("[^a-zA-Z0-9_]", "");
+                                if (!name.isEmpty() && !participants.contains(name)) {
+                                    participants.add(name);
+                                }
+                            }
                         }
                     }
                 } else if (line.matches("^(class|interface|entity|participant)\\s+[a-zA-Z0-9_]+.*")) {
                     String[] parts = line.split("\\s+");
                     if (parts.length >= 2) {
                         String name = parts[1].replaceAll("[^a-zA-Z0-9_]", "");
-                        if (!participants.contains(name)) {
+                        if (!name.isEmpty() && !participants.contains(name)) {
                             participants.add(name);
                         }
                     }
