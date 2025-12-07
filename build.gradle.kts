@@ -66,7 +66,6 @@ dependencies {
   runtimeOnly("org.apache.xmlgraphics:fop-core:$fopVersion")
 
   // JSON pour MCP
-  implementation("com.google.code.gson:gson:2.10.1")
   implementation("com.fasterxml.jackson.core:jackson-databind:2.18.0")
 
   // JSON-RPC pour MCP

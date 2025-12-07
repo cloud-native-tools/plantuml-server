@@ -124,29 +124,18 @@ public class McpServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+        throws ServletException, IOException {
 
         if (!mcpEnabled) {
-            sendJsonError(response, HttpServletResponse.SC_NOT_FOUND, "MCP API is not enabled");
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
-        // Return endpoint information
-        response.setContentType("application/json");
+        // éventuellement : authenticate(request, response)
+
+        response.setContentType("text/plain");
         response.setCharacterEncoding("UTF-8");
-
-        String info = "{\n" +
-                "  \"service\": \"PlantUML MCP Server\",\n" +
-                "  \"version\": \"1.0.0\",\n" +
-                "  \"protocol\": \"JSON-RPC 2.0\",\n" +
-                "  \"transport\": \"HTTP POST\",\n" +
-                "  \"methods\": [\"initialize\", \"tools/list\", \"tools/call\"],\n" +
-                "  \"tools\": [\"diagram_type\"],\n" +
-                "  \"authentication\": " + (!apiKey.isEmpty() ? "\"Bearer token required\"" : "\"none\"") + "\n" +
-                "}";
-
-        response.getWriter().print(info);
-        response.getWriter().flush();
+        response.getWriter().println("PlantUML MCP endpoint is up.");
     }
 
     // ============= AUTHENTICATION =============
