@@ -1,6 +1,5 @@
 import java.text.SimpleDateFormat
 import java.util.Date
-import org.gradle.api.artifacts.Configuration
 
 
 plugins {
@@ -64,6 +63,9 @@ dependencies {
 
   // JSON pour MCP
   implementation("com.google.code.gson:gson:2.10.1")
+
+  // JSON-RPC pour MCP
+  implementation("com.github.briandilley.jsonrpc4j:jsonrpc4j:1.6.3")
 
   // Eclipse ELK
   implementation("org.eclipse.elk:org.eclipse.elk.core:0.9.1")
