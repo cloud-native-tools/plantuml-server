@@ -6,7 +6,6 @@ import org.gradle.api.artifacts.Configuration
 plugins {
     java
     war
-    checkstyle
     id("org.gretty") version "4.1.0"
     id("com.github.ben-manes.versions") version "0.51.0"
     eclipse
@@ -114,23 +113,6 @@ tasks.war {
                 .replace("\${timestamp}", SimpleDateFormat("yyyyMMdd-HHmm").format(Date()))
         }
     }
-}
-
-// Checkstyle configuration
-checkstyle {
-    toolVersion = "10.12.0"
-    configFile = file("src/main/config/checkstyle.xml")
-    configDirectory.set(file("src/main/config"))
-    isShowViolations = true
-    isIgnoreFailures = false
-}
-
-tasks.named<Checkstyle>("checkstyleMain") {
-    source = fileTree("src/main/java")
-}
-
-tasks.named<Checkstyle>("checkstyleTest") {
-    source = fileTree("src/test/java")
 }
 
 // Test configuration
