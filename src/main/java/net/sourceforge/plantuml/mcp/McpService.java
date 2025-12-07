@@ -23,12 +23,16 @@
  */
 package net.sourceforge.plantuml.mcp;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.googlecode.jsonrpc4j.JsonRpcMethod;
+import com.googlecode.jsonrpc4j.JsonRpcParam;
 import com.googlecode.jsonrpc4j.JsonRpcService;
 
 /**
  * MCP (Model Context Protocol) service interface.
  * Defines the JSON-RPC methods supported by the PlantUML MCP server.
+ * 
+ * Note: Using individual @JsonRpcParam for each field to match JSON-RPC params structure
  */
 @JsonRpcService("/mcp")
 public interface McpService {
@@ -38,19 +42,26 @@ public interface McpService {
      * This is the first method called when establishing a connection.
      */
     @JsonRpcMethod("initialize")
-    InitializeResult initialize(InitializeParams params);
+    InitializeResult initialize(
+        @JsonRpcParam("protocolVersion") String protocolVersion,
+        @JsonRpcParam("clientInfo") ClientInfo clientInfo,
+        @JsonRpcParam("capabilities") ClientCapabilities capabilities
+    );
 
     /**
      * List all available tools.
      * Returns the schema for each tool including name, description, and input schema.
      */
     @JsonRpcMethod("tools/list")
-    ToolsListResult listTools(ToolsListParams params);
+    ToolsListResult listTools(@JsonRpcParam("cursor") String cursor);
 
     /**
      * Call a specific tool with arguments.
      * Executes the tool and returns its result.
      */
     @JsonRpcMethod("tools/call")
-    ToolsCallResult callTool(ToolsCallParams params);
+    ToolsCallResult callTool(
+        @JsonRpcParam("name") String name,
+        @JsonRpcParam("arguments") JsonNode arguments
+    );
 }

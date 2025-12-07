@@ -73,13 +73,12 @@ public class McpServiceImpl implements McpService {
     // ============= INITIALIZE =============
 
     @Override
-    public InitializeResult initialize(InitializeParams params) {
+    public InitializeResult initialize(String protocolVersion, ClientInfo clientInfo, 
+                                      ClientCapabilities capabilities) {
         InitializeResult result = new InitializeResult();
 
         // Support MCP protocol version 2025-06-18 or fallback to client's version
-        result.protocolVersion = params.protocolVersion != null
-                ? params.protocolVersion
-                : "2025-06-18";
+        result.protocolVersion = protocolVersion != null ? protocolVersion : "2025-06-18";
 
         // Server information
         ServerInfo info = new ServerInfo();
@@ -100,7 +99,7 @@ public class McpServiceImpl implements McpService {
     // ============= TOOLS/LIST =============
 
     @Override
-    public ToolsListResult listTools(ToolsListParams params) {
+    public ToolsListResult listTools(String cursor) {
         ToolsListResult result = new ToolsListResult();
         result.tools = new ArrayList<>(tools);
         result.nextCursor = null; // No pagination for now
@@ -110,18 +109,18 @@ public class McpServiceImpl implements McpService {
     // ============= TOOLS/CALL =============
 
     @Override
-    public ToolsCallResult callTool(ToolsCallParams params) {
+    public ToolsCallResult callTool(String name, JsonNode arguments) {
         ToolsCallResult result = new ToolsCallResult();
         result.content = new ArrayList<>();
         result.isError = false;
 
         // Dispatch to the appropriate tool handler
-        switch (params.name) {
+        switch (name) {
             case "diagram_type":
-                handleDiagramType(params.arguments, result);
+                handleDiagramType(arguments, result);
                 break;
             default:
-                handleUnknownTool(params.name, result);
+                handleUnknownTool(name, result);
         }
 
         return result;

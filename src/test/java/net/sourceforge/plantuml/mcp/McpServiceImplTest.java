@@ -50,14 +50,14 @@ class McpServiceImplTest {
     @DisplayName("Initialize should return server info and capabilities")
     void testInitialize() {
         // Arrange
-        InitializeParams params = new InitializeParams();
-        params.protocolVersion = "2025-06-18";
-        params.clientInfo = new ClientInfo();
-        params.clientInfo.name = "test-client";
-        params.clientInfo.version = "1.0.0";
+        String protocolVersion = "2025-06-18";
+        ClientInfo clientInfo = new ClientInfo();
+        clientInfo.name = "test-client";
+        clientInfo.version = "1.0.0";
+        ClientCapabilities capabilities = new ClientCapabilities();
 
         // Act
-        InitializeResult result = service.initialize(params);
+        InitializeResult result = service.initialize(protocolVersion, clientInfo, capabilities);
 
         // Assert
         assertNotNull(result);
@@ -74,11 +74,12 @@ class McpServiceImplTest {
     @DisplayName("Initialize should fallback to default protocol version")
     void testInitializeWithNullProtocolVersion() {
         // Arrange
-        InitializeParams params = new InitializeParams();
-        params.protocolVersion = null;
+        String protocolVersion = null;
+        ClientInfo clientInfo = new ClientInfo();
+        ClientCapabilities capabilities = new ClientCapabilities();
 
         // Act
-        InitializeResult result = service.initialize(params);
+        InitializeResult result = service.initialize(protocolVersion, clientInfo, capabilities);
 
         // Assert
         assertEquals("2025-06-18", result.protocolVersion);
@@ -88,10 +89,10 @@ class McpServiceImplTest {
     @DisplayName("Tools list should contain diagram_type tool")
     void testListTools() {
         // Arrange
-        ToolsListParams params = new ToolsListParams();
+        String cursor = null;
 
         // Act
-        ToolsListResult result = service.listTools(params);
+        ToolsListResult result = service.listTools(cursor);
 
         // Assert
         assertNotNull(result);
@@ -114,12 +115,8 @@ class McpServiceImplTest {
         ObjectNode arguments = mapper.createObjectNode();
         arguments.put("source", source);
 
-        ToolsCallParams params = new ToolsCallParams();
-        params.name = "diagram_type";
-        params.arguments = arguments;
-
         // Act
-        ToolsCallResult result = service.callTool(params);
+        ToolsCallResult result = service.callTool("diagram_type", arguments);
 
         // Assert
         assertNotNull(result);
@@ -142,12 +139,8 @@ class McpServiceImplTest {
         ObjectNode arguments = mapper.createObjectNode();
         arguments.put("source", source);
 
-        ToolsCallParams params = new ToolsCallParams();
-        params.name = "diagram_type";
-        params.arguments = arguments;
-
         // Act
-        ToolsCallResult result = service.callTool(params);
+        ToolsCallResult result = service.callTool("diagram_type", arguments);
 
         // Assert
         assertNotNull(result);
@@ -163,12 +156,8 @@ class McpServiceImplTest {
         ObjectNode arguments = mapper.createObjectNode();
         arguments.put("source", source);
 
-        ToolsCallParams params = new ToolsCallParams();
-        params.name = "diagram_type";
-        params.arguments = arguments;
-
         // Act
-        ToolsCallResult result = service.callTool(params);
+        ToolsCallResult result = service.callTool("diagram_type", arguments);
 
         // Assert
         assertNotNull(result);
@@ -186,12 +175,8 @@ class McpServiceImplTest {
         ObjectNode arguments = mapper.createObjectNode();
         arguments.put("source", "");
 
-        ToolsCallParams params = new ToolsCallParams();
-        params.name = "diagram_type";
-        params.arguments = arguments;
-
         // Act
-        ToolsCallResult result = service.callTool(params);
+        ToolsCallResult result = service.callTool("diagram_type", arguments);
 
         // Assert
         assertTrue(result.isError);
@@ -205,12 +190,8 @@ class McpServiceImplTest {
         // Arrange
         ObjectNode arguments = mapper.createObjectNode();
 
-        ToolsCallParams params = new ToolsCallParams();
-        params.name = "diagram_type";
-        params.arguments = arguments;
-
         // Act
-        ToolsCallResult result = service.callTool(params);
+        ToolsCallResult result = service.callTool("diagram_type", arguments);
 
         // Assert
         assertTrue(result.isError);
@@ -220,12 +201,10 @@ class McpServiceImplTest {
     @DisplayName("Call unknown tool should return error")
     void testCallUnknownTool() {
         // Arrange
-        ToolsCallParams params = new ToolsCallParams();
-        params.name = "unknown_tool";
-        params.arguments = mapper.createObjectNode();
+        ObjectNode arguments = mapper.createObjectNode();
 
         // Act
-        ToolsCallResult result = service.callTool(params);
+        ToolsCallResult result = service.callTool("unknown_tool", arguments);
 
         // Assert
         assertTrue(result.isError);
@@ -248,11 +227,7 @@ class McpServiceImplTest {
         ObjectNode arguments = mapper.createObjectNode();
         arguments.put("source", source);
 
-        ToolsCallParams params = new ToolsCallParams();
-        params.name = "diagram_type";
-        params.arguments = arguments;
-
-        ToolsCallResult result = service.callTool(params);
+        ToolsCallResult result = service.callTool("diagram_type", arguments);
 
         assertFalse(result.isError, "Should not return error for: " + expectedType);
         String actualType = result.content.get(0).data.get("diagramType").asText();
