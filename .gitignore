@@ -13,3 +13,5 @@ out/
 *.iws
 .gradle
 build
+node_modules
+package-lock.json
