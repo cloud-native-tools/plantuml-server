@@ -70,12 +70,21 @@ dependencies {
   implementation("org.eclipse.elk:org.eclipse.elk.alg.layered:0.9.1")
   implementation("org.eclipse.elk:org.eclipse.elk.alg.mrtree:0.9.1")
 
-  // Tests
+  // Jetty pour le serveur embarqué des tests (EmbeddedJettyServer)
+  testImplementation("org.eclipse.jetty:jetty-server:$jettyVersion")
+  testImplementation("org.eclipse.jetty:jetty-webapp:$jettyVersion")
+  testImplementation("org.eclipse.jetty:jetty-servlet:$jettyVersion")
+  testImplementation("org.eclipse.jetty:jetty-http:$jettyVersion")
+  testImplementation("org.eclipse.jetty:jetty-io:$jettyVersion")
+  testImplementation("org.eclipse.jetty:jetty-util:$jettyVersion")
+
+  // Tests JUnit 5
   testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
   testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
   testImplementation("org.junit.platform:junit-platform-suite-api:1.9.3")
 
+  // Tests Selenium
   testImplementation("org.seleniumhq.selenium:selenium-java:$seleniumVersion")
   testImplementation("io.github.bonigarcia:webdrivermanager:5.3.3")
 }
@@ -137,7 +146,8 @@ eclipse {
     }
 }
 
-// Task to unpack WebJars for tests (Monaco Editor)
+// Task to unpack WebJars (Monaco Editor)
+// Extract to classes directory so it's available at runtime and in the WAR
 val unpackWebJars by tasks.registering(Copy::class) {
     from({
         configurations.runtimeClasspath.get()
@@ -145,14 +155,20 @@ val unpackWebJars by tasks.registering(Copy::class) {
             .map { zipTree(it) }
     })
     include("**/min/vs/loader.js", "**/min/vs/**/*", "**/min-maps/vs/**/*")
-    into(layout.buildDirectory.dir("resources/main"))
+    into(layout.buildDirectory.dir("classes/java/main"))
 }
 
+// Ensure WebJars are unpacked before processing resources
 tasks.processResources {
     dependsOn(unpackWebJars)
 }
 
 tasks.processTestResources {
+    dependsOn(unpackWebJars)
+}
+
+// Ensure WebJars are unpacked before creating the WAR
+tasks.war {
     dependsOn(unpackWebJars)
 }
 
@@ -167,6 +183,10 @@ tasks.named<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask>("
 }
 
 // Clean minified resources before build
+// NOTE: Minified resources should be generated manually with Maven for now:
+//   mvn -f pom.xml generate-resources
+// Uncomment the next lines if you want to regenerate them each time
+/*
 val cleanMinifiedResources by tasks.registering(Delete::class) {
     delete(fileTree("src/main/webapp/min"))
 }
@@ -174,6 +194,7 @@ val cleanMinifiedResources by tasks.registering(Delete::class) {
 tasks.clean {
     dependsOn(cleanMinifiedResources)
 }
+*/
 
 // Task to optimize/minify web resources (CSS, JS)
 val optimizeWebResources by tasks.registering {
@@ -195,11 +216,11 @@ val optimizeWebResources by tasks.registering {
 }
 
 // Build process
-tasks.processResources {
-    dependsOn(cleanMinifiedResources)
-}
+// Note: Minified resources in src/main/webapp/min should be generated manually with Maven
 
-// Note: For CSS/JS minification, you'll need to integrate a tool like Webpack or use an appropriate Gradle plugin
+// Note: For CSS/JS minification, generate files manually with Maven:
+//   mvn -f pom.xml generate-resources
+// Or integrate a frontend build tool like Webpack/Vite
 
 tasks.compileJava {
     options.encoding = "UTF-8"
