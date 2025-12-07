@@ -50,6 +50,10 @@ dependencies {
 
   // Servlet API fournie par le conteneur (Jetty/Gretty) au runtime
   providedCompile("jakarta.servlet:jakarta.servlet-api:6.0.0")
+  compileOnly("javax.servlet:javax.servlet-api:4.0.1")
+
+// API Portlet uniquement pour satisfaire jsonrpc4j (pas utilisée à l'exécution)
+  compileOnly("javax.portlet:portlet-api:2.0")
 
   // jlatexmath
   runtimeOnly("org.scilab.forge:jlatexmath:$jlatexmathVersion")
@@ -63,9 +67,10 @@ dependencies {
 
   // JSON pour MCP
   implementation("com.google.code.gson:gson:2.10.1")
+  implementation("com.fasterxml.jackson.core:jackson-databind:2.18.0")
 
   // JSON-RPC pour MCP
-  implementation("com.github.briandilley.jsonrpc4j:jsonrpc4j:1.6.3")
+  implementation("com.github.briandilley.jsonrpc4j:jsonrpc4j:1.7")
 
   // Eclipse ELK
   implementation("org.eclipse.elk:org.eclipse.elk.core:0.9.1")

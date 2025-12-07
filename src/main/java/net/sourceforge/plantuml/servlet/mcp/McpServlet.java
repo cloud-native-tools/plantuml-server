@@ -23,272 +23,205 @@
  */
 package net.sourceforge.plantuml.servlet.mcp;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.googlecode.jsonrpc4j.JsonRpcServer;
+import net.sourceforge.plantuml.mcp.McpService;
+import net.sourceforge.plantuml.mcp.McpServiceImpl;
+import net.sourceforge.plantuml.servlet.utility.Configuration;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import net.sourceforge.plantuml.FileFormat;
-import net.sourceforge.plantuml.FileFormatOption;
-import net.sourceforge.plantuml.SourceStringReader;
-import net.sourceforge.plantuml.security.SecurityUtils;
-import net.sourceforge.plantuml.servlet.utility.Configuration;
-import net.sourceforge.plantuml.version.Version;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.security.MessageDigest;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * MCP (Model Context Protocol) servlet for PlantUML server.
- * Provides a JSON API for AI agents to interact with PlantUML.
+ * Handles JSON-RPC 2.0 messages over HTTP POST.
+ *
+ * Configuration via environment variables:
+ * - PLANTUML_MCP_ENABLED: "true" to enable the endpoint (default: false)
+ * - PLANTUML_MCP_API_KEY: Optional API key for Bearer authentication
+ *
+ * Endpoint: POST /mcp
+ * Content-Type: application/json
+ *
+ * Supported JSON-RPC methods:
+ * - initialize: Establish MCP connection
+ * - tools/list: List available tools
+ * - tools/call: Execute a tool
  */
-@SuppressWarnings("SERIAL")
+@SuppressWarnings("serial")
 public class McpServlet extends HttpServlet {
 
-    private static final Gson GSON = new Gson();
+    public JsonRpcServer jsonRpcServer;
+    private String apiKey;
+    private boolean mcpEnabled;
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        if (!isMcpEnabled()) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "MCP API is not enabled");
-            return;
-        }
+    public void init() throws ServletException {
+        super.init();
 
-        if (!authenticate(request, response)) {
-            return;
-        }
+        // Read configuration
+        mcpEnabled = isMcpEnabled();
+        apiKey = getConfigString("PLANTUML_MCP_API_KEY", "");
 
-        String pathInfo = request.getPathInfo();
-        if (pathInfo == null) {
-            pathInfo = "/";
-        }
+        if (mcpEnabled) {
+            // Initialize JSON-RPC server
+            ObjectMapper mapper = new ObjectMapper();
+            McpServiceImpl service = new McpServiceImpl(mapper);
+            this.jsonRpcServer = new JsonRpcServer(mapper, service, McpService.class);
 
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
-        try {
-            if (pathInfo.equals("/info")) {
-                handleInfo(response);
-            } else if (pathInfo.equals("/stats")) {
-                handleStats(response);
-            } else {
-                sendError(response, HttpServletResponse.SC_NOT_FOUND, "Endpoint not found");
-            }
-        } catch (Exception e) {
-            sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                "Internal server error: " + e.getMessage());
+            log("MCP endpoint initialized" +
+                (apiKey.isEmpty() ? " (no authentication)" : " (with API key authentication)"));
+        } else {
+            log("MCP endpoint disabled (set PLANTUML_MCP_ENABLED=true to enable)");
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        if (!isMcpEnabled()) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "MCP API is not enabled");
+
+        // Check if MCP is enabled
+        if (!mcpEnabled) {
+            sendJsonError(response, HttpServletResponse.SC_NOT_FOUND,
+                         "MCP API is not enabled. Set PLANTUML_MCP_ENABLED=true to enable.");
             return;
         }
 
+        // Authenticate if API key is configured
         if (!authenticate(request, response)) {
             return;
         }
 
-        String pathInfo = request.getPathInfo();
-        if (pathInfo == null) {
-            pathInfo = "/";
+        // Set response headers
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+        try {
+            // Laisser jsonrpc4j gérer la requête Jakarta directement
+            jsonRpcServer.handle(request, response);
+        } catch (Exception e) {
+            log("Error handling JSON-RPC request: " + e.getMessage(), e);
+            sendJsonError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                "Internal server error: " + e.getMessage());
+        }    }
+
+    @Override
+    protected void doOptions(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // Handle CORS preflight
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setStatus(HttpServletResponse.SC_OK);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        if (!mcpEnabled) {
+            sendJsonError(response, HttpServletResponse.SC_NOT_FOUND, "MCP API is not enabled");
+            return;
         }
 
+        // Return endpoint information
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        try {
-            JsonObject requestBody = readJsonRequest(request);
+        String info = "{\n" +
+                "  \"service\": \"PlantUML MCP Server\",\n" +
+                "  \"version\": \"1.0.0\",\n" +
+                "  \"protocol\": \"JSON-RPC 2.0\",\n" +
+                "  \"transport\": \"HTTP POST\",\n" +
+                "  \"methods\": [\"initialize\", \"tools/list\", \"tools/call\"],\n" +
+                "  \"tools\": [\"diagram_type\"],\n" +
+                "  \"authentication\": " + (!apiKey.isEmpty() ? "\"Bearer token required\"" : "\"none\"") + "\n" +
+                "}";
 
-            if (pathInfo.equals("/render")) {
-                handleRender(requestBody, response);
-            } else {
-                sendError(response, HttpServletResponse.SC_NOT_FOUND, "Endpoint not found");
-            }
-        } catch (Exception e) {
-            // Log error (servlet container will handle logging)
-            sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                "Internal server error: " + e.getMessage());
-        }
+        response.getWriter().print(info);
+        response.getWriter().flush();
     }
 
-    private boolean isMcpEnabled() {
-        String enabled = Configuration.getString("PLANTUML_MCP_ENABLED", "false");
-        return "true".equalsIgnoreCase(enabled);
-    }
+    // ============= AUTHENTICATION =============
 
+    /**
+     * Authenticates the request using Bearer token if API key is configured.
+     * Returns true if authentication succeeds or is not required.
+     */
     private boolean authenticate(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        String apiKey = Configuration.getString("PLANTUML_MCP_API_KEY", "");
+
+        // No authentication required if no API key is set
         if (apiKey.isEmpty()) {
-            return true; // No API key required
+            return true;
         }
 
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header");
+            sendJsonError(response, HttpServletResponse.SC_UNAUTHORIZED,
+                         "Missing or invalid Authorization header. Expected: Bearer <token>");
             return false;
         }
 
-        String token = authHeader.substring(7);
+        String token = authHeader.substring(7).trim();
         if (!apiKey.equals(token)) {
-            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid API key");
+            sendJsonError(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid API key");
             return false;
         }
 
         return true;
     }
 
-    private JsonObject readJsonRequest(HttpServletRequest request) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = request.getReader()) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
-        }
-        return GSON.fromJson(sb.toString(), JsonObject.class);
+    // ============= CONFIGURATION =============
+
+    private boolean isMcpEnabled() {
+        String enabled = getConfigString("PLANTUML_MCP_ENABLED", "false");
+        return "true".equalsIgnoreCase(enabled) || "1".equals(enabled);
     }
 
-    private void handleInfo(HttpServletResponse response) throws IOException {
-        Map<String, Object> info = new HashMap<>();
-        info.put("plantumlServerVersion", "0.0.1");
-        info.put("plantumlLibraryVersion", Version.versionString());
-        info.put("securityProfile", SecurityUtils.getSecurityProfile().toString());
-
-        info.put("limitSize", Configuration.getInt("PLANTUML_LIMIT_SIZE", 4096));
-
-        boolean statsEnabled = "on".equalsIgnoreCase(
-            Configuration.getString("PLANTUML_STATS", "off")
-        );
-        info.put("statsEnabled", statsEnabled);
-
-        Map<String, Object> environment = new HashMap<>();
-        environment.put("backend", "jetty");
-        environment.put("readOnly", !SecurityUtils.getSecurityProfile().toString().equals("UNSECURE"));
-        info.put("environment", environment);
-
-        sendJson(response, info);
-    }
-
-    private void handleStats(HttpServletResponse response) throws IOException {
-        boolean statsEnabled = "on".equalsIgnoreCase(
-            Configuration.getString("PLANTUML_STATS", "off")
-        );
-        if (!statsEnabled) {
-            sendError(response, HttpServletResponse.SC_NOT_FOUND, "Stats not enabled");
-            return;
+    private String getConfigString(String key, String defaultValue) {
+        // Try Configuration utility first (checks system properties and environment variables)
+        String value = Configuration.getString(key, null);
+        if (value != null) {
+            return value;
         }
 
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("message", "Stats endpoint not yet implemented");
-        sendJson(response, stats);
-    }
-
-
-    private void handleRender(JsonObject requestBody, HttpServletResponse response)
-            throws IOException {
-        String source = getJsonString(requestBody, "source", null);
-        if (source == null || source.isEmpty()) {
-            sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Missing 'source' field");
-            return;
-        }
-
-        String format = getJsonString(requestBody, "format", "png");
-        FileFormat fileFormat = parseFileFormat(format);
-
-        long startTime = System.currentTimeMillis();
-
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            SourceStringReader reader = new SourceStringReader(source);
-            reader.outputImage(outputStream, 0, new FileFormatOption(fileFormat));
-
-            byte[] imageBytes = outputStream.toByteArray();
-            String dataUrl = formatDataUrl(imageBytes, fileFormat);
-            String sha256 = computeSha256(imageBytes);
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("status", "ok");
-            result.put("format", format);
-            result.put("dataUrl", dataUrl);
-            result.put("renderTimeMs", System.currentTimeMillis() - startTime);
-            result.put("sha256", sha256);
-
-            sendJson(response, result);
-        } catch (Exception e) {
-            sendError(response, HttpServletResponse.SC_BAD_REQUEST,
-                "Rendering failed: " + e.getMessage());
-        }
-    }
-
-
-    private FileFormat parseFileFormat(String format) {
-        switch (format.toLowerCase()) {
-            case "svg": return FileFormat.SVG;
-            case "png": return FileFormat.PNG;
-            case "txt": return FileFormat.UTXT;
-            case "eps": return FileFormat.EPS;
-            case "pdf": return FileFormat.PDF;
-            default: return FileFormat.PNG;
-        }
-    }
-
-    private String formatDataUrl(byte[] data, FileFormat format) {
-        String base64 = Base64.getEncoder().encodeToString(data);
-        String mimeType = format.getMimeType();
-        return "data:" + mimeType + ";base64," + base64;
-    }
-
-    private String computeSha256(byte[] data) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(data);
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    private String getJsonString(JsonObject json, String key, String defaultValue) {
-        if (json.has(key) && !json.get(key).isJsonNull()) {
-            return json.get(key).getAsString();
-        }
+        // Fallback to default value
         return defaultValue;
     }
 
-    private void sendJson(HttpServletResponse response, Object data) throws IOException {
-        response.setStatus(HttpServletResponse.SC_OK);
-        PrintWriter writer = response.getWriter();
-        writer.print(GSON.toJson(data));
-        writer.flush();
-    }
+    // ============= ERROR HANDLING =============
 
-    private void sendError(HttpServletResponse response, int status, String message)
+    private void sendJsonError(HttpServletResponse response, int status, String message)
             throws IOException {
         response.setStatus(status);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", message);
-        PrintWriter writer = response.getWriter();
-        writer.print(GSON.toJson(error));
-        writer.flush();
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        String json = "{\n" +
+                "  \"error\": {\n" +
+                "    \"code\": " + status + ",\n" +
+                "    \"message\": \"" + escapeJson(message) + "\"\n" +
+                "  }\n" +
+                "}";
+
+        response.getWriter().print(json);
+        response.getWriter().flush();
+    }
+
+    private String escapeJson(String text) {
+        if (text == null) return "";
+        return text.replace("\\", "\\\\")
+                   .replace("\"", "\\\"")
+                   .replace("\n", "\\n")
+                   .replace("\r", "\\r")
+                   .replace("\t", "\\t");
     }
 }
