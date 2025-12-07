@@ -70,19 +70,21 @@ dependencies {
   implementation("org.eclipse.elk:org.eclipse.elk.alg.layered:0.9.1")
   implementation("org.eclipse.elk:org.eclipse.elk.alg.mrtree:0.9.1")
 
-  // ---- Jetty pour les tests embarqués (EmbeddedJettyServer) ----
+  // Jetty pour le serveur embarqué des tests (EmbeddedJettyServer)
   testImplementation("org.eclipse.jetty:jetty-server:$jettyVersion")
-  testImplementation("org.eclipse.jetty:jetty-servlet:$jettyVersion")
   testImplementation("org.eclipse.jetty:jetty-webapp:$jettyVersion")
+  testImplementation("org.eclipse.jetty:jetty-servlet:$jettyVersion")
   testImplementation("org.eclipse.jetty:jetty-http:$jettyVersion")
+  testImplementation("org.eclipse.jetty:jetty-io:$jettyVersion")
+  testImplementation("org.eclipse.jetty:jetty-util:$jettyVersion")
 
-  // Tests JUnit
+  // Tests JUnit 5
   testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
   testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
   testImplementation("org.junit.platform:junit-platform-suite-api:1.9.3")
 
-  // Selenium & WebDriverManager
+  // Tests Selenium
   testImplementation("org.seleniumhq.selenium:selenium-java:$seleniumVersion")
   testImplementation("io.github.bonigarcia:webdrivermanager:5.3.3")
 }
