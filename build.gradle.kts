@@ -6,7 +6,7 @@ import org.gradle.api.artifacts.Configuration
 plugins {
     java
     war
-    id("org.gretty") version "4.1.0"
+    id("org.gretty") version "4.1.10"
     id("com.github.ben-manes.versions") version "0.51.0"
     eclipse
 }
@@ -26,7 +26,7 @@ repositories {
 
 // Project properties
 val plantumlVersion = "1.2025.10"
-val jettyVersion = "11.0.24"
+val jettyVersion = "11.0.15"
 val monacoEditorVersion = "0.36.1"
 val jlatexmathVersion = "1.0.7"
 val batikVersion = "1.19"
@@ -42,63 +42,42 @@ val jettyContextPath: String by project
 val wtpContextName: String by project
 
 
-// Réutilise la configuration "providedCompile" existante si un plugin l’a déjà créée
-val providedCompile: Configuration by configurations.getting
-
-// Optionnel : config de test liée à providedCompile (si tu en as vraiment besoin)
-val testProvidedCompile: Configuration by configurations.creating {
-  extendsFrom(providedCompile)
-}
-
-
 dependencies {
-    // Main dependencies
-    implementation("net.sourceforge.plantuml:plantuml:$plantumlVersion")
-    runtimeOnly("org.webjars.npm:monaco-editor:$monacoEditorVersion")
+  // PlantUML core
+  implementation("net.sourceforge.plantuml:plantuml:$plantumlVersion")
 
-    // Jakarta Servlet API
-    providedCompile("jakarta.servlet:jakarta.servlet-api:6.0.0")
+  // Éditeur Monaco (webjar)
+  runtimeOnly("org.webjars.npm:monaco-editor:$monacoEditorVersion")
 
-    // Jetty dependencies - scope based on configuration
-    val jettyScope = if (apacheJspScope == "implementation") "implementation" else "testImplementation"
+  // Servlet API fournie par le conteneur (Jetty/Gretty) au runtime
+  providedCompile("jakarta.servlet:jakarta.servlet-api:6.0.0")
 
-    add(jettyScope, "org.eclipse.jetty:apache-jsp:$jettyVersion") {
-        exclude(group = "org.eclipse.jetty.toolchain", module = "jetty-jakarta-servlet-api")
-        exclude(group = "org.eclipse.jetty.toolchain", module = "jetty-schemas")
-    }
+  // jlatexmath
+  runtimeOnly("org.scilab.forge:jlatexmath:$jlatexmathVersion")
+  runtimeOnly("org.scilab.forge:jlatexmath-font-greek:$jlatexmathVersion")
+  runtimeOnly("org.scilab.forge:jlatexmath-font-cyrillic:$jlatexmathVersion")
 
-    providedCompile("org.eclipse.jetty:jetty-annotations:$jettyVersion") {
-        exclude(group = "org.eclipse.jetty.toolchain", module = "jetty-jakarta-servlet-api")
-    }
+  // PDF / SVG : Batik & FOP
+  runtimeOnly("org.apache.xmlgraphics:batik-svgrasterizer:$batikVersion")
+  runtimeOnly("org.apache.xmlgraphics:batik-svggen:$batikVersion")
+  runtimeOnly("org.apache.xmlgraphics:fop-core:$fopVersion")
 
-    // jlatexmath
-    runtimeOnly("org.scilab.forge:jlatexmath:$jlatexmathVersion")
-    runtimeOnly("org.scilab.forge:jlatexmath-font-greek:$jlatexmathVersion")
-    runtimeOnly("org.scilab.forge:jlatexmath-font-cyrillic:$jlatexmathVersion")
+  // JSON pour MCP
+  implementation("com.google.code.gson:gson:2.10.1")
 
-    // PDF support - Batik & FOP
-    runtimeOnly("org.apache.xmlgraphics:batik-svgrasterizer:$batikVersion")
-    runtimeOnly("org.apache.xmlgraphics:batik-svggen:$batikVersion")
-    runtimeOnly("org.apache.xmlgraphics:fop-core:$fopVersion")
+  // Eclipse ELK
+  implementation("org.eclipse.elk:org.eclipse.elk.core:0.9.1")
+  implementation("org.eclipse.elk:org.eclipse.elk.alg.layered:0.9.1")
+  implementation("org.eclipse.elk:org.eclipse.elk.alg.mrtree:0.9.1")
 
-    // JSON for MCP
-    implementation("com.google.code.gson:gson:2.10.1")
+  // Tests
+  testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+  testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
+  testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
+  testImplementation("org.junit.platform:junit-platform-suite-api:1.9.3")
 
-    // Eclipse ELK
-    implementation("org.eclipse.elk:org.eclipse.elk.core:0.9.1")
-    implementation("org.eclipse.elk:org.eclipse.elk.alg.layered:0.9.1")
-    implementation("org.eclipse.elk:org.eclipse.elk.alg.mrtree:0.9.1")
-
-    // Testing dependencies
-    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
-    testImplementation("org.junit.platform:junit-platform-suite-api:1.9.3")
-    testImplementation("org.seleniumhq.selenium:selenium-java:$seleniumVersion")
-    testImplementation("io.github.bonigarcia:webdrivermanager:5.3.3")
-    testImplementation("org.eclipse.jetty:jetty-server:$jettyVersion") {
-        exclude(group = "org.eclipse.jetty.toolchain", module = "jetty-jakarta-servlet-api")
-    }
+  testImplementation("org.seleniumhq.selenium:selenium-java:$seleniumVersion")
+  testImplementation("io.github.bonigarcia:webdrivermanager:5.3.3")
 }
 
 // WAR configuration
