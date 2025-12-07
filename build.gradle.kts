@@ -26,7 +26,7 @@ repositories {
 
 // Project properties
 val plantumlVersion = "1.2025.10"
-val jettyVersion = "11.0.15"
+val jettyVersion = "11.0.24"
 val monacoEditorVersion = "0.36.1"
 val jlatexmathVersion = "1.0.7"
 val batikVersion = "1.19"
