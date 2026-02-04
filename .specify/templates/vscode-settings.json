@@ -17,7 +17,5 @@
   "chat.tools.terminal.autoApprove": {
     "/(\\n|.)+/": true
   },
-  "chat.tools.terminal.blockDetectedFileWrites": "never",
-  "java.configuration.updateBuildConfiguration": "automatic",
-  "java.format.settings.url": ".vscode/java-formatter.xml"
+  "chat.tools.terminal.blockDetectedFileWrites": "never"
 }
